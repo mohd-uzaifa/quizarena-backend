@@ -36,7 +36,8 @@ public class SecurityConfig {
                                 "/api/answers/**", // Allows students to submit answers later
                                 "/api/quizzes/*/leaderboard",
                                 "/ws",
-                                "/ws/**"
+                                "/ws/**",
+                                "/health"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
