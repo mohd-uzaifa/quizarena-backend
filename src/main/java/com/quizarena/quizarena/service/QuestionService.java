@@ -40,24 +40,19 @@ public class QuestionService {
 
     public Question addQuestion(Long quizId, Question question) {
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         if (quiz.getStatus() != QuizStatus.DRAFT) {
-            throw new IllegalStateException(
-                    "Questions can only be added to draft quizzes");
+            throw new IllegalStateException("Questions can only be added to draft quizzes");
         }
 
         long questionCount = questionRepository.countByQuizId(quizId);
-
-        if (questionCount >= 20) {
-            throw new IllegalStateException(
-                    "A quiz cannot contain more than 20 questions");
+        if (questionCount >= 15) {
+            throw new IllegalStateException("A quiz cannot contain more than 15 questions");
         }
 
         question.setQuiz(quiz);
         question.setRegenerationCount(0);
-
         return questionRepository.save(question);
     }
 
@@ -65,31 +60,22 @@ public class QuestionService {
         if (!quizRepository.existsById(quizId)) {
             throw new ResourceNotFoundException("Quiz not found");
         }
-
         return questionRepository.findByQuizIdOrderByIdAsc(quizId);
     }
 
-    public Question updateQuestion(
-            Long quizId,
-            Long questionId,
-            Question updatedQuestion
-    ) {
+    public Question updateQuestion(Long quizId, Long questionId, Question updatedQuestion) {
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         Question existingQuestion = questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Question not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
         if (!existingQuestion.getQuiz().getId().equals(quiz.getId())) {
-            throw new IllegalArgumentException(
-                    "Question does not belong to this quiz");
+            throw new IllegalArgumentException("Question does not belong to this quiz");
         }
 
         if (quiz.getStatus() != QuizStatus.DRAFT) {
-            throw new IllegalStateException(
-                    "Only draft quizzes can be edited");
+            throw new IllegalStateException("Only draft quizzes can be edited");
         }
 
         existingQuestion.setQuestionText(updatedQuestion.getQuestionText());
@@ -97,29 +83,24 @@ public class QuestionService {
         existingQuestion.setOptionB(updatedQuestion.getOptionB());
         existingQuestion.setOptionC(updatedQuestion.getOptionC());
         existingQuestion.setOptionD(updatedQuestion.getOptionD());
-        existingQuestion.setCorrectOption(
-                updatedQuestion.getCorrectOption());
+        existingQuestion.setCorrectOption(updatedQuestion.getCorrectOption());
 
         return questionRepository.save(existingQuestion);
     }
 
     public void deleteQuestion(Long quizId, Long questionId) {
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         Question question = questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Question not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
         if (!question.getQuiz().getId().equals(quiz.getId())) {
-            throw new IllegalArgumentException(
-                    "Question does not belong to this quiz");
+            throw new IllegalArgumentException("Question does not belong to this quiz");
         }
 
         if (quiz.getStatus() != QuizStatus.DRAFT) {
-            throw new IllegalStateException(
-                    "Only draft quizzes can be edited");
+            throw new IllegalStateException("Only draft quizzes can be edited");
         }
 
         questionRepository.delete(question);
@@ -127,34 +108,33 @@ public class QuestionService {
 
     public List<QuestionResponse> generateQuestionsForQuiz(
             Long quizId,
-            int questionCount
+            int questionCount,
+            List<String> existingConcepts // NEW: Receive concepts from Controller
     ) {
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         if (quiz.getStatus() != QuizStatus.DRAFT) {
-            throw new IllegalStateException(
-                    "AI questions can only be generated for draft quizzes");
+            throw new IllegalStateException("AI questions can only be generated for draft quizzes");
         }
 
-        if (questionCount < 5 || questionCount > 20) {
-            throw new IllegalArgumentException(
-                    "Question count must be between 5 and 20");
+        // CRITICAL: Lowered minimum from 5 to 1 to allow smaller final batches
+        if (questionCount < 1 || questionCount > 15) {
+            throw new IllegalArgumentException("Question count must be between 1 and 15");
         }
 
         long existingCount = questionRepository.countByQuizId(quizId);
-
-        if (existingCount + questionCount > 20) {
-            throw new IllegalStateException(
-                    "A quiz cannot contain more than 20 questions");
+        if (existingCount + questionCount > 15) {
+            throw new IllegalStateException("A quiz cannot contain more than 15 questions");
         }
 
+        // NEW: Pass the frontend's concept list directly to Groq
         GeneratedQuestionsResponse generated =
                 groqService.generateQuestions(
                         quiz.getTopic(),
                         quiz.getDifficulty().name(),
-                        questionCount
+                        questionCount,
+                        existingConcepts
                 );
 
         List<QuestionResponse> savedQuestions = new ArrayList<>();
@@ -162,14 +142,12 @@ public class QuestionService {
         for (var generatedQuestion : generated.getQuestions()) {
             Question question = new Question();
 
-            question.setQuestionText(
-                    generatedQuestion.getQuestionText());
+            question.setQuestionText(generatedQuestion.getQuestionText());
             question.setOptionA(generatedQuestion.getOptionA());
             question.setOptionB(generatedQuestion.getOptionB());
             question.setOptionC(generatedQuestion.getOptionC());
             question.setOptionD(generatedQuestion.getOptionD());
-            question.setCorrectOption(
-                    generatedQuestion.getCorrectOption());
+            question.setCorrectOption(generatedQuestion.getCorrectOption());
             question.setQuiz(quiz);
             question.setRegenerationCount(0);
 
@@ -185,7 +163,8 @@ public class QuestionService {
                             saved.getOptionD(),
                             saved.getCorrectOption(),
                             saved.getRegenerationCount(),
-                            quiz.getId()
+                            quiz.getId(),
+                            generatedQuestion.getConcept() // NEW: Pass the concept back to React
                     )
             );
         }
@@ -193,39 +172,26 @@ public class QuestionService {
         return savedQuestions;
     }
 
-
-    public QuestionResponse regenerateQuestion(
-            Long quizId,
-            Long questionId
-    ) {
+    public QuestionResponse regenerateQuestion(Long quizId, Long questionId) {
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         if (quiz.getStatus() != QuizStatus.DRAFT) {
-            throw new IllegalStateException(
-                    "Only draft quizzes can have questions regenerated");
+            throw new IllegalStateException("Only draft quizzes can have questions regenerated");
         }
 
         Question question = questionRepository.findById(questionId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Question not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
 
         if (!question.getQuiz().getId().equals(quiz.getId())) {
-            throw new IllegalArgumentException(
-                    "Question does not belong to this quiz");
+            throw new IllegalArgumentException("Question does not belong to this quiz");
         }
 
-        int regenerationCount = question.getRegenerationCount() == null
-                ? 0
-                : question.getRegenerationCount();
-
+        int regenerationCount = question.getRegenerationCount() == null ? 0 : question.getRegenerationCount();
         if (regenerationCount >= 3) {
-            throw new IllegalStateException(
-                    "A question can only be regenerated 3 times");
+            throw new IllegalStateException("A question can only be regenerated 3 times");
         }
 
-        // Fetch all existing questions in the quiz to prevent AI from duplicating them
         List<Question> existingQuestions = questionRepository.findByQuizIdOrderByIdAsc(quizId);
         List<String> existingQuestionTexts = existingQuestions.stream()
                 .map(Question::getQuestionText)
@@ -258,11 +224,13 @@ public class QuestionService {
                 saved.getOptionD(),
                 saved.getCorrectOption(),
                 saved.getRegenerationCount(),
-                quiz.getId()
+                quiz.getId(),
+                generated.getConcept() // NEW
         );
     }
 
     public void broadcastQuestion(Long quizId, int questionNumber) {
+        // [Existing broadcastQuestion logic remains identical]
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
@@ -303,10 +271,6 @@ public class QuestionService {
                 timeLimitSeconds
         );
 
-        messagingTemplate.convertAndSend(
-                "/topic/quiz/" + quizId + "/question",
-                response
-        );
+        messagingTemplate.convertAndSend("/topic/quiz/" + quizId + "/question", response);
     }
-
 }

@@ -12,6 +12,9 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.util.Collection;
+import java.util.Collections;
+
 @RestController
 @RequestMapping("/api/groq")
 public class GroqController {
@@ -33,7 +36,8 @@ public class GroqController {
         GeneratedQuestionsResponse response = groqService.generateQuestions(
                 request.getTopic(),
                 request.getDifficulty().name(),
-                request.getQuestionCount()
+                request.getQuestionCount(),
+                Collections.emptyList()
         );
 
         return ResponseEntity.ok(response);

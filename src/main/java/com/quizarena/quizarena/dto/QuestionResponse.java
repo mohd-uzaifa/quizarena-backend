@@ -1,4 +1,3 @@
-
 package com.quizarena.quizarena.dto;
 
 import com.quizarena.quizarena.entity.CorrectOption;
@@ -14,6 +13,7 @@ public class QuestionResponse {
     private CorrectOption correctOption;
     private Integer regenerationCount;
     private Long quizId;
+    private String concept;
 
     public QuestionResponse() {}
 
@@ -26,7 +26,8 @@ public class QuestionResponse {
             String optionD,
             CorrectOption correctOption,
             Integer regenerationCount,
-            Long quizId) {
+            Long quizId,
+            String concept) {
 
         this.id = id;
         this.questionText = questionText;
@@ -37,6 +38,7 @@ public class QuestionResponse {
         this.correctOption = correctOption;
         this.regenerationCount = regenerationCount;
         this.quizId = quizId;
+        this.concept = concept;
     }
 
     public Long getId() { return id; }
@@ -48,4 +50,8 @@ public class QuestionResponse {
     public CorrectOption getCorrectOption() { return correctOption; }
     public Integer getRegenerationCount() { return regenerationCount; }
     public Long getQuizId() { return quizId; }
+
+    // NEW: Getter and Setter for concept
+    public String getConcept() { return concept; }
+    public void setConcept(String concept) { this.concept = concept; }
 }

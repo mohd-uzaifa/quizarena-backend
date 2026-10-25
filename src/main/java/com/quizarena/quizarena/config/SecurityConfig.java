@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 "/health"
                         ).permitAll()
                         .anyRequest().authenticated()
+
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

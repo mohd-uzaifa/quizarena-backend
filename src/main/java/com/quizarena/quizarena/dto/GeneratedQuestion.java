@@ -28,7 +28,7 @@ public class GeneratedQuestion {
     private CorrectOption correctOption;
 
     @NotBlank
-    private String explanation;
+    private String concept;
 
     public String getQuestionText() {
         return questionText;
@@ -78,11 +78,11 @@ public class GeneratedQuestion {
         this.correctOption = correctOption;
     }
 
-    public String getExplanation() {
-        return explanation;
+    public String getConcept() {
+        return concept;
     }
 
-    public void setExplanation(String explanation) {
-        this.explanation = explanation;
+    public void setConcept(String concept) {
+        this.concept = concept;
     }
 }

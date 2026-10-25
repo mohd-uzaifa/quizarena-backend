@@ -1,26 +1,25 @@
-
 package com.quizarena.quizarena.dto;
 
 import com.quizarena.quizarena.entity.Difficulty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import java.util.List;
 
 public class GenerateQuestionsRequest {
 
-    @NotBlank
-    @Size(max = 200)
+    // Validation removed because frontend does not send these in the batch loop.
+    // The service layer fetches them from the saved Quiz entity instead.
     private String topic;
-
-    @NotNull
     private Difficulty difficulty;
 
     @NotNull
-    @Min(5)
-    @Max(20)
+    @Min(1) // CRITICAL: Reduced from 5 to 1 so smaller final batches are allowed
+    @Max(15)
     private Integer questionCount;
+
+    // NEW: Accepts the list of concepts to avoid duplicates
+    private List<String> existingConcepts;
 
     public String getTopic() {
         return topic;
@@ -44,5 +43,13 @@ public class GenerateQuestionsRequest {
 
     public void setQuestionCount(Integer questionCount) {
         this.questionCount = questionCount;
+    }
+
+    public List<String> getExistingConcepts() {
+        return existingConcepts;
+    }
+
+    public void setExistingConcepts(List<String> existingConcepts) {
+        this.existingConcepts = existingConcepts;
     }
 }

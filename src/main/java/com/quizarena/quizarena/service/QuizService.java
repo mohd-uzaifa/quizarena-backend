@@ -71,8 +71,8 @@ public class QuizService {
             throw new IllegalStateException("A quiz must contain at least 5 questions");
         }
 
-        if (questionCount > 20) {
-            throw new IllegalStateException("A quiz cannot contain more than 20 questions");
+        if (questionCount > 15) {
+            throw new IllegalStateException("A quiz cannot contain more than 15 questions");
         }
 
         quiz.setStatus(QuizStatus.WAITING);
